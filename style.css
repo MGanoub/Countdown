@@ -168,9 +168,11 @@ button.primary {
 
 /* ===== Edit dialog ===== */
 dialog {
+  margin: auto;
+  max-height: calc(100dvh - 2rem);
+  overflow-y: auto;
   border: none;
   border-radius: 1.25rem;
-  margin: auto;
   padding: 1.5rem;
   width: min(26rem, calc(100% - 2rem));
   background: var(--surface);

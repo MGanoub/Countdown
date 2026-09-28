@@ -1,9 +1,31 @@
-// ===== Defaults: edit these to set your own countdown =====
-const DEFAULT_TITLE = "memo & ror vacation";
-const DEFAULT_DATE = "2026-12-20T00:00"; // local time, YYYY-MM-DDTHH:MM
-const DEFAULT_COLOR = "#FFB400";
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import {
+  getFirestore,
+  doc,
+  onSnapshot,
+  setDoc,
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-// Quick-pick colors shown in the editor
+// ===== 1. Paste your config from the Firebase console here =====
+const firebaseConfig = {
+  apiKey: "AIzaSyC28h1EaHuX9l95_PKzfRTXgQ1bZhf4kD0",
+  authDomain: "countdown-49055.firebaseapp.com",
+  projectId: "countdown-49055",
+  storageBucket: "countdown-49055.firebasestorage.app",
+  messagingSenderId: "758076170225",
+  appId: "1:758076170225:web:adac9add33d3b6b493ae50",
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+const settingsRef = doc(db, "countdowns", "main"); // collection "countdowns", document "main"
+
+// Used until someone saves for the first time
+const FALLBACK = {
+  title: "Countdown",
+  date: "2027-01-01T00:00:00+01:00",
+  color: "#FFB400",
+};
 const PRESETS = [
   "#FFB400",
   "#FF5A5F",
@@ -13,49 +35,56 @@ const PRESETS = [
   "#1D2B5C",
 ];
 
-// URL params override defaults: ?title=Trip&date=2026-12-20T08:00&color=FF5A5F
-const params = new URLSearchParams(location.search);
-let title = params.get("title") || DEFAULT_TITLE;
-let dateStr = params.get("date") || DEFAULT_DATE;
-let color = cleanColor(params.get("color")) || DEFAULT_COLOR;
-
 const $ = (id) => document.getElementById(id);
 const pad = (n) => String(n).padStart(2, "0");
+let current = FALLBACK;
 let target, timer;
 
-// Accepts "FF5A5F" or "#ff5a5f", returns "#FF5A5F" or null
-function cleanColor(c) {
-  if (!c) return null;
-  c = c.replace("#", "");
-  return /^[0-9a-f]{6}$/i.test(c) ? "#" + c.toUpperCase() : null;
-}
+// ===== 2. Listen live: runs on page load AND every time anyone saves =====
+onSnapshot(
+  settingsRef,
+  (snap) => {
+    current = { ...FALLBACK, ...(snap.exists() ? snap.data() : {}) };
+    render();
+  },
+  (err) => {
+    console.error("Firestore read failed:", err);
+    render();
+  },
+);
 
-// Dark text on light colors, white text on dark colors
+// ===== Color helpers =====
 function textColorFor(hex) {
   const r = parseInt(hex.slice(1, 3), 16);
   const g = parseInt(hex.slice(3, 5), 16);
   const b = parseInt(hex.slice(5, 7), 16);
-  const brightness = (r * 299 + g * 587 + b * 114) / 1000;
-  return brightness > 150 ? "#1D2B5C" : "#FFFFFF";
+  return (r * 299 + g * 587 + b * 114) / 1000 > 150 ? "#1D2B5C" : "#FFFFFF";
 }
-
 function applyColor(c) {
+  if (!/^#[0-9a-f]{6}$/i.test(c)) c = FALLBACK.color;
   const root = document.documentElement.style;
   root.setProperty("--accent", c);
   root.setProperty("--on-accent", textColorFor(c));
 }
 
+// Date -> "YYYY-MM-DDTHH:MM" in the viewer's local time (for the input)
+function toLocalInput(date) {
+  const local = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
+  return local.toISOString().slice(0, 16);
+}
+
+// ===== Page =====
 function render() {
-  target = new Date(dateStr);
-  $("title").textContent = title;
-  document.title = title + " – countdown";
+  target = new Date(current.date);
+  $("title").textContent = current.title;
+  document.title = current.title + " – countdown";
   $("target").textContent = isNaN(target)
-    ? "Set a valid date with “Change countdown”."
+    ? "Invalid date"
     : target.toLocaleString(undefined, {
         dateStyle: "full",
         timeStyle: "short",
       });
-  applyColor(color);
+  applyColor(current.color);
 
   clearInterval(timer);
   document.body.classList.remove("is-done");
@@ -77,7 +106,6 @@ function tick() {
   diff %= 3600;
   const m = Math.floor(diff / 60);
   const s = diff % 60;
-
   $("d").textContent = d;
   $("dl").textContent = d === 1 ? "day" : "days";
   $("h").textContent = pad(h);
@@ -85,60 +113,65 @@ function tick() {
   $("s").textContent = pad(s);
 }
 
-// ===== Editor dialog =====
+// ===== Editor =====
 const dlg = $("editor");
-let pickedColor = color;
+let pickedColor = current.color;
 
 function selectSwatch(c) {
-  pickedColor = c;
-  $("inColor").value = c;
-  applyColor(c); // live preview behind the dialog
+  pickedColor = c.toUpperCase();
+  $("inColor").value = pickedColor;
+  applyColor(pickedColor); // live preview
   document
     .querySelectorAll(".swatch")
-    .forEach((btn) =>
-      btn.setAttribute("aria-pressed", btn.dataset.color === c),
+    .forEach((b) =>
+      b.setAttribute("aria-pressed", b.dataset.color === pickedColor),
     );
 }
 
-// Build the swatch buttons once
 PRESETS.forEach((c) => {
-  const btn = document.createElement("button");
-  btn.type = "button";
-  btn.className = "swatch";
-  btn.style.background = c;
-  btn.dataset.color = c;
-  btn.setAttribute("aria-label", "Color " + c);
-  btn.addEventListener("click", () => selectSwatch(c));
-  $("swatches").appendChild(btn);
+  const b = document.createElement("button");
+  b.type = "button";
+  b.className = "swatch";
+  b.style.background = c;
+  b.dataset.color = c;
+  b.setAttribute("aria-label", "Color " + c);
+  b.addEventListener("click", () => selectSwatch(c));
+  $("swatches").appendChild(b);
 });
-
-$("inColor").addEventListener("input", (e) =>
-  selectSwatch(e.target.value.toUpperCase()),
-);
+$("inColor").addEventListener("input", (e) => selectSwatch(e.target.value));
 
 $("editBtn").addEventListener("click", () => {
-  $("inTitle").value = title;
-  $("inDate").value = dateStr.slice(0, 16);
-  selectSwatch(color);
+  $("inTitle").value = current.title;
+  const t = new Date(current.date);
+  $("inDate").value = isNaN(t) ? "" : toLocalInput(t);
+  selectSwatch(current.color);
   dlg.showModal();
 });
 
 $("cancel").addEventListener("click", () => {
-  applyColor(color); // undo the preview
+  applyColor(current.color); // undo preview
   dlg.close();
 });
 
-$("form").addEventListener("submit", () => {
-  title = $("inTitle").value.trim() || DEFAULT_TITLE;
-  dateStr = $("inDate").value || DEFAULT_DATE;
-  color = pickedColor;
-  const p = new URLSearchParams({
-    title,
-    date: dateStr,
-    color: color.slice(1),
-  });
-  history.replaceState(null, "", "?" + p.toString());
-  render();
+// ===== 3. Save for everyone =====
+$("form").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const saveBtn = $("saveBtn");
+  saveBtn.disabled = true;
+  saveBtn.textContent = "Saving…";
+  try {
+    await setDoc(settingsRef, {
+      title: $("inTitle").value.trim() || FALLBACK.title,
+      // Local input -> exact moment in UTC, so everyone counts to the same second
+      date: new Date($("inDate").value).toISOString(),
+      color: pickedColor,
+    });
+    dlg.close(); // onSnapshot updates the page for everyone
+  } catch (err) {
+    console.error("Save failed:", err);
+    alert("Could not save. Check the console (F12) for details.");
+  } finally {
+    saveBtn.disabled = false;
+    saveBtn.textContent = "Save";
+  }
 });
-
-render();

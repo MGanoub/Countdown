@@ -8,12 +8,12 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
-  <script src="script.js" defer></script>
+  <script type="module" src="script.js"></script>
 </head>
 <body>
   <main>
     <header>
-      <h1 id="title">Countdown</h1>
+      <h1 id="title">Loading…</h1>
       <p class="target" id="target"></p>
     </header>
 
@@ -43,10 +43,10 @@
         <div class="swatches" id="swatches"></div>
         <input id="inColor" type="color" class="color-input">
       </label>
-      <p class="hint">Saving updates the link, so you can share it.</p>
+      <p class="hint">Saving changes it for everyone.</p>
       <div class="row">
         <button type="button" id="cancel">Cancel</button>
-        <button type="submit" class="primary">Save</button>
+        <button type="submit" class="primary" id="saveBtn">Save</button>
       </div>
     </form>
   </dialog>
