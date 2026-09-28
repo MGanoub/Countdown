@@ -2,20 +2,53 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Countdown</title>
-   <link rel="stylesheet" href="style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+  <script src="script.js" defer></script>
 </head>
 <body>
   <main>
-  <h1 id="title">My Countdown</h1>
-  <div class="clock">
-    <div class="unit"><span id="days">0</span><small>days</small></div>
-    <div class="unit"><span id="hours">00</span><small>hours</small></div>
-    <div class="unit"><span id="minutes">00</span><small>minutes</small></div>
-    <div class="unit"><span id="seconds">00</span><small>seconds</small></div>
-  </div>
-</main>
-  <script src="index.js"></script>
+    <header>
+      <h1 id="title">Countdown</h1>
+      <p class="target" id="target"></p>
+    </header>
+
+    <div class="clock" role="timer" aria-live="off">
+      <div class="unit days"><span class="num" id="d">0</span><span class="lbl" id="dl">days</span></div>
+      <div class="unit"><span class="num" id="h">00</span><span class="lbl">hours</span></div>
+      <div class="unit"><span class="num" id="m">00</span><span class="lbl">minutes</span></div>
+      <div class="unit"><span class="num" id="s">00</span><span class="lbl">seconds</span></div>
+    </div>
+    <p class="done">It's here.</p>
+  </main>
+
+  <footer>
+    <button class="edit-btn" id="editBtn" type="button">Change countdown</button>
+  </footer>
+
+  <dialog id="editor">
+    <form method="dialog" id="form">
+      <h2>Change countdown</h2>
+      <label>Title
+        <input id="inTitle" type="text" maxlength="80" required>
+      </label>
+      <label>Date and time
+        <input id="inDate" type="datetime-local" required>
+      </label>
+      <label>Color
+        <div class="swatches" id="swatches"></div>
+        <input id="inColor" type="color" class="color-input">
+      </label>
+      <p class="hint">Saving updates the link, so you can share it.</p>
+      <div class="row">
+        <button type="button" id="cancel">Cancel</button>
+        <button type="submit" class="primary">Save</button>
+      </div>
+    </form>
+  </dialog>
 </body>
 </html>
